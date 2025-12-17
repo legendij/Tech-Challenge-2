@@ -5,8 +5,8 @@ on:
     branches: ["gitops"]
     paths:
       - "app/**"
-      - ".github/workflows/**"
       - "helm/**"
+      - ".github/workflows/**"
 
 permissions:
   id-token: write
@@ -31,11 +31,9 @@ jobs:
         uses: aws-actions/amazon-ecr-login@v2
 
       - name: Set image tag
-        id: vars
-        run: |
-          echo "IMAGE_TAG=${GITHUB_SHA}" >> $GITHUB_ENV
+        run: echo "IMAGE_TAG=${GITHUB_SHA}" >> $GITHUB_ENV
 
-       - name: Build & push app image
+      - name: Build & push app image
         run: |
           ECR_REGISTRY="${{ steps.login-ecr.outputs.registry }}"
           docker build -t "$ECR_REGISTRY/${{ secrets.ECR_REPO_APP }}:${IMAGE_TAG}" ./app
@@ -43,12 +41,12 @@ jobs:
 
       - name: Update Helm values with new image tag
         run: |
-           sed -i "s/^\\s*tag: .*/  tag: ${IMAGE_TAG}/" helm/values.yaml || true
+          sed -i "s/^\\s*tag: .*/  tag: ${IMAGE_TAG}/" helm/values.yaml || true
 
       - name: Commit Helm value updates
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add helm/values.yaml || true
-          git commit -m "chore: update helm image tags to ${IMAGE_TAG}" || echo "No changes to commit"
+          git commit -m "chore: update helm image tag to ${IMAGE_TAG}" || echo "No changes to commit"
           git push
