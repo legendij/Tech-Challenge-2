@@ -1,0 +1,6 @@
+apiVersion: v2
+name: tech-challenge-2
+description: Single Node app chart
+type: application
+version: 0.1.0
+appVersion: "1.0"

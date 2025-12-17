@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+        - name: backend
+          image: "{{ $.Values.global.awsAccountId }}.dkr.ecr.{{ $.Values.global.awsRegion }}.amazonaws.com/{{ $.Values.global.ecr.backendRepo }}:{{ $.Values.global.imageTags.backendTag }}"
+          ports:
+            - containerPort: {{ $.Values.global.service.backendPort }}

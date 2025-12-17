@@ -1,0 +1,10 @@
+global:
+  awsAccountId: "391061376449"
+  awsRegion: "us-east-1"
+
+image:
+  repo: "tech-challenge-2/app"
+  tag: "latest"
+
+service:
+  port: 8080
