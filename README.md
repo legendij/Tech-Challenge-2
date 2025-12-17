@@ -111,12 +111,6 @@ No static AWS credentials are stored in Jenkins
 
 ---
 
-## ✅ PART 2 — Clean Step-by-Step Guide (No Troubleshooting)
-
-This will be a **separate document** (or separate chat later if you want), structured like:
-
-### Tech Challenge 2 — Clean Execution Guide
-
 **Phase 0:** Scope & Guardrails  
 **Phase 1:** Local Node.js App  
 **Phase 2:** Dockerization  
@@ -131,4 +125,124 @@ Each phase will have:
 - Expected outputs
 - No “if broken” branches
 
+Bonus: GitOps Alternative (GitHub Actions + Argo CD)
 
+This bonus implements a GitOps-style CI/CD workflow as an alternative to Jenkins.
+
+Goal:
+CI (GitHub Actions):
+Build a Docker image from the app/ directory
+Push the image to Amazon ECR
+Update helm/values.yaml with the new image tag (commit SHA)
+CD (Argo CD):
+Watch the gitops branch
+Deploy the Helm chart from the helm/ directory
+Auto-sync changes to the EKS cluster (with prune + self-heal)
+Branch Strategy
+main branch: Jenkins-based workflow (original Tech Challenge)
+gitops branch: GitOps workflow (GitHub Actions + Argo CD)
+
+Prerequisites
+AWS resources already created:
+EKS cluster
+ECR repository: tech-challenge-2/app
+GitHub repository secrets configured (Repository → Settings → Secrets and variables → Actions):
+AWS_ROLE_ARN = ARN of the IAM role used by GitHub Actions (OIDC)
+AWS_REGION = us-east-1
+ECR_REPO_APP = tech-challenge-2/app
+
+Step 1 — GitHub Actions CI (build + push to ECR)
+    Workflow file:
+    .github/workflows/ci.yml
+
+Trigger:
+    Runs on push to the gitops branch, limited to changes under:
+    app/**
+    helm/**
+    .github/workflows/**
+
+What it does:
+    Authenticates to AWS via OIDC (no long-lived AWS keys stored in GitHub)
+    Builds Docker image from ./app
+    Pushes image to ECR with tag equal to the commit SHA
+    Updates helm/values.yaml image tag and commits it back to gitops
+
+Step 2 — Helm Chart (Deployment Source of Truth)
+Helm chart directory:
+    helm/
+
+Key values file:
+    helm/values.yaml
+    Example structure:
+
+global:
+  awsAccountId: "391061376449"
+  awsRegion: "us-east-1"
+
+image:
+  repo: "tech-challenge-2/app"
+  tag: "<commit-sha>"
+
+service:
+  port: 3000
+
+Step 3 — Install Argo CD on EKS
+kubectl create namespace argocd
+kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+kubectl get pods -n argocd
+
+Expose Argo CD UI (local):
+kubectl port-forward svc/argocd-server -n argocd 8080:443
+
+Get initial admin password:
+kubectl get secret argocd-initial-admin-secret -n argocd \
+  -o jsonpath="{.data.password}" | base64 -d; echo
+
+Login:
+URL: https://localhost:8080
+Username: admin
+Password: (from the command above)
+
+Step 4 — Create Argo CD Application (Bootstrap GitOps)
+Create a new app in Argo CD with:
+    Application Name: tech-challenge-2
+    Project: default
+    Sync Policy: Automatic (Enable Auto-Sync, Prune, Self-Heal)
+
+Source:
+    Repo URL: https://github.com/legendij/Tech-Challenge-2.git
+    Revision: gitops
+    Path: helm
+
+Destination:
+    Cluster: https://kubernetes.default.svc
+    Namespace: default
+
+Expected result:
+    App becomes Healthy and Synced
+    Deployment and Service created in the cluster
+
+Step 5 — Verify Deployment (GitOps)
+Check Kubernetes resources:
+kubectl get deployments,svc,pods -n default
+
+Confirm running image:
+kubectl get pod -l app=app -o jsonpath="{.items[0].spec.containers[0].image}"; echo
+
+Test the service locally:
+kubectl port-forward svc/app 8081:3000
+curl http://127.0.0.1:8081/
+
+Step 6 — Prove Full GitOps Rollout
+Make a small change to app/index.js, commit, and push to gitops:
+git checkout gitops
+# edit app/index.js
+git add app/index.js
+git commit -m "test: trigger gitops rollout"
+git pull --rebase origin gitops
+git push
+
+Expected:
+    GitHub Actions builds and pushes a new image to ECR
+    Helm values get updated with the new tag
+    Argo CD auto-syncs and redeploys the pod
