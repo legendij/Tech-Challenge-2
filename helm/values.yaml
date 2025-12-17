@@ -4,7 +4,7 @@ global:
 
 image:
   repo: "tech-challenge-2/app"
-  tag: f4008726ea2c727b2254d2252d3d1a48b49d9550
+  tag: 7606390dbbe80412f70966c683b8aba36da9e68c
 
 service:
   port: 3000
