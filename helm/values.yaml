@@ -4,7 +4,7 @@ global:
 
 image:
   repo: "tech-challenge-2/app"
-  tag: "latest"
+  tag: 5849e7a5c880b389d426ca7362a8123730253e13
 
 service:
   port: 8080
