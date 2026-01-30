@@ -12,7 +12,7 @@ pipeline {
     ECR_REPO = "tc2-app"
     ECR_URI  = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO}"
 
-    CHART_PATH = "helm/tc2-chart"
+    CHART_PATH = "./helm/tc2-chart"
     NAMESPACE  = "tc2"
     RELEASE    = "tc2"
 
