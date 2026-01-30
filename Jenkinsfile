@@ -40,11 +40,16 @@ pipeline {
     stage('Tag + Push to ECR') {
       steps {
         sh '''
-          TAG=${GIT_COMMIT:0:7}
+          #!/usr/bin/env bash
+          set -e
+          
+          TAG=$(echo "$GIT_COMMIT" | cut -c1-7)
           echo "Pushing tag: $TAG"
+
           docker tag tc2-app:build $ECR_URI:$TAG
           docker push $ECR_URI:$TAG
-          echo $TAG > image_tag.txt
+
+          echo $TAG > image_tag..txt
         '''
       }
     }
